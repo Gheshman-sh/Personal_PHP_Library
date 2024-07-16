@@ -9,103 +9,191 @@ class Router
         'PATCH' => [],
         'DELETE' => []
     ];
+
     private $middlewares = [];
+    private $staticPath;
+    private $routeGroupPrefix = '';
 
-    public function get($route, $callback)
+    public function get($route, $callback, $middleware = [])
     {
-        $this->addRoute('GET', $route, $callback);
+        $this->addRoute('GET', $route, $callback, $middleware);
     }
 
-    public function post($route, $callback)
+    public function post($route, $callback, $middleware = [])
     {
-        $this->addRoute('POST', $route, $callback);
+        $this->addRoute('POST', $route, $callback, $middleware);
     }
 
-    public function put($route, $callback)
+    public function put($route, $callback, $middleware = [])
     {
-        $this->addRoute('PUT', $route, $callback);
+        $this->addRoute('PUT', $route, $callback, $middleware);
     }
 
-    public function patch($route, $callback)
+    public function patch($route, $callback, $middleware = [])
     {
-        $this->addRoute('PATCH', $route, $callback);
+        $this->addRoute('PATCH', $route, $callback, $middleware);
     }
 
-    public function delete($route, $callback)
+    public function delete($route, $callback, $middleware = [])
     {
-        $this->addRoute('DELETE', $route, $callback);
+        $this->addRoute('DELETE', $route, $callback, $middleware);
     }
 
-    public function any($route, $callback)
+    public function useStatic($path)
     {
-        $this->get($route, $callback);
-        $this->post($route, $callback);
-        $this->put($route, $callback);
-        $this->patch($route, $callback);
-        $this->delete($route, $callback);
+        $this->staticPath = $path;
     }
 
-    public function use($middleware)
+    public function middleware($middleware, $routes = [])
     {
-        $this->middlewares[] = $middleware;
-    }
-
-    private function addRoute($method, $route, $callback)
-    {
-        $pattern = preg_replace('/\$([a-zA-Z0-9_]+)/', '(?<$1>[^\/]+)', $route);
-        $this->routes[$method][$pattern] = $callback;
-    }
-
-    private function handleRequest($method, $route)
-    {
-        foreach ($this->middlewares as $middleware) {
-            if (!$middleware()) {
-                return;
-            }
-        }
-
-        $matchedCallback = null;
-
-        foreach ($this->routes[$method] as $registeredRoute => $callback) {
-            $pattern = preg_replace('/\$([a-zA-Z0-9_]+)/', '(?<$1>[^\/]+)', $registeredRoute);
-            $pattern = str_replace('/', '\/', $pattern);
-            $pattern = "/^" . $pattern . "$/";
-
-            if (preg_match($pattern, $route, $matches)) {
-                $matchedCallback = $callback;
-                foreach ($matches as $key => $value) {
-                    if (!is_numeric($key)) {
-                        $_GET[$key] = $value;
-                    }
-                }
-                break;
-            }
-        }
-
-        if ($matchedCallback) {
-            if (is_callable($matchedCallback)) {
-                call_user_func($matchedCallback);
-            } else {
-                include_once __DIR__ . "/$matchedCallback.php";
-            }
+        if (empty($routes)) {
+            $this->middlewares['global'][] = $middleware;
         } else {
-            http_response_code(404);
-            redirect('/404');
+            foreach ($routes as $route) {
+                $this->middlewares[$route][] = $middleware;
+            }
         }
+    }
+
+    public function group($prefix, $callback)
+    {
+        $this->routeGroupPrefix = $prefix;
+        call_user_func($callback);
+        $this->routeGroupPrefix = '';
+    }
+
+    private function addRoute($method, $route, $callback, $middleware = [])
+    {
+        $route = $this->routeGroupPrefix . $route;
+        $this->routes[$method][$route] = ['callback' => $callback, 'middleware' => $middleware];
     }
 
     public function run()
     {
-        $uri = $_SERVER['REQUEST_URI'];
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $method = $_SERVER['REQUEST_METHOD'];
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST' && !is_csrf_valid()) {
+        if ($this->staticPath && $this->serveStatic($uri)) {
+            return;
+        }
+
+        if (!$this->isValidMethod($method)) {
+            http_response_code(405);
+            echo '405 Method Not Allowed';
+            return;
+        }
+
+        if ($method === 'POST' && !is_csrf_valid()) {
             http_response_code(403);
             echo "Invalid CSRF token";
             return;
         }
 
         $this->handleRequest($method, $uri);
+    }
+
+    private function isValidMethod($method)
+    {
+        return isset($this->routes[$method]);
+    }
+
+    private function handleRequest($method, $uri)
+    {
+        $matchedCallback = null;
+        $matchedMiddleware = [];
+
+        foreach ($this->routes[$method] as $route => $data) {
+            $routeParts = explode('/', ltrim($route, '/'));
+            $requestParts = explode('/', ltrim($uri, '/'));
+
+            if (count($routeParts) !== count($requestParts)) {
+                continue;
+            }
+
+            $params = [];
+            $isMatch = true;
+
+            foreach ($routeParts as $index => $routePart) {
+                if (strpos($routePart, '{') === 0 && strpos($routePart, '}') === strlen($routePart) - 1) {
+                    $paramName = trim($routePart, '{}');
+                    $params[$paramName] = $requestParts[$index];
+                } elseif ($routePart !== $requestParts[$index]) {
+                    $isMatch = false;
+                    break;
+                }
+            }
+
+            if ($isMatch) {
+                $matchedCallback = $data['callback'];
+                $matchedMiddleware = $data['middleware'];
+                break;
+            }
+        }
+
+        if (!$matchedCallback) {
+            http_response_code(404);
+            $this->executeCallback('404');
+            return;
+        }
+
+        $this->executeMiddleware($matchedMiddleware, $params, function() use ($matchedCallback, $params) {
+            $this->executeCallback($matchedCallback, $params);
+        });
+    }
+
+    private function executeCallback($callback, $params = [])
+    {
+        if (is_callable($callback)) {
+            call_user_func_array($callback, $params);
+        } else {
+            redirect("/$callback");
+        }
+    }
+
+    private function serveStatic($uri)
+    {
+        $filePath = realpath($this->staticPath . $uri);
+
+        if ($filePath && is_file($filePath) && strpos($filePath, realpath($this->staticPath)) === 0) {
+            $mimeType = $this->getMimeType($filePath);
+            header('Content-Type: ' . $mimeType);
+            readfile($filePath);
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getMimeType($filePath)
+    {
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+
+        $mimeTypes = [
+            'css' => 'text/css',
+            'js' => 'application/javascript',
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'svg' => 'image/svg+xml',
+            'html' => 'text/html'
+        ];
+
+        return isset($mimeTypes[$extension]) ? $mimeTypes[$extension] : 'application/octet-stream';
+    }
+
+    private function executeMiddleware($middleware, $params, $next)
+    {
+        if (empty($middleware)) {
+            call_user_func($next);
+            return;
+        }
+
+        $middlewareFunc = array_shift($middleware);
+
+        $middlewareFunc($params, function() use ($middleware, $params, $next) {
+            $this->executeMiddleware($middleware, $params, $next);
+        });
     }
 }
 
@@ -126,38 +214,4 @@ function is_csrf_valid()
         return false;
     }
     return true;
-}
-
-function render($view, $data = [])
-{
-    extract($data);
-
-    ob_start();
-
-    include_once dirname(__DIR__) . "/views/$view";
-
-    $content = ob_get_clean();
-
-    return $content;
-}
-
-
-function redirect($path)
-{
-    return header("Location: $path");
-}
-
-function authMiddleware()
-{
-    if (!isset($_SESSION['user'])) {
-        http_response_code(401);
-        echo "Unauthorized";
-        return false;
-    }
-    return true;
-}
-
-function say($msg)
-{
-    echo "<script>console.log('$msg')</script>";
 }
