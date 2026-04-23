@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Library.php — Documentation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #111520;
+    --surface2: #181d2a;
+    --border: #1f2840;
+    --accent: #4f8cff;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --danger: #f87171;
+    --text: #e2e8f8;
+    --muted: #6b7a9e;
+    --dim: #3a4460;
+    --tag-get: #22c55e;
+    --tag-post: #3b82f6;
+    --tag-static: #a78bfa;
+    --tag-int: #fb923c;
+    --tag-arr: #06b6d4;
+    --tag-str: #34d399;
+    --tag-bool: #f472b6;
+    --tag-void: #94a3b8;
+    --tag-mixed: #fbbf24;
+    --tag-never: #f87171;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(11,14,20,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    height: 64px;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; font-weight: 600;
+    color: #fff;
+  }
+  .logo-text {
+    font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;
+  }
+  .logo-version {
+    font-size: 0.65rem; font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted); background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* ── Search ── */
+  .search-wrap {
+    flex: 1;
+    max-width: 480px;
+    margin-left: auto;
+    position: relative;
+  }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none;
+    width: 16px; height: 16px;
+  }
+  #search {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px 8px 36px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #search::placeholder { color: var(--muted); }
+  #search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
+  }
+  .search-count {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 0.7rem; font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted); display: none;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 64px);
+    position: relative; z-index: 1;
+  }
+
+  /* ── Sidebar ── */
+  nav {
+    position: sticky; top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--dim) transparent;
+  }
+
+  .nav-section {
+    padding: 0 1rem 1.5rem;
+  }
+  .nav-section-title {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 0 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(79,140,255,0.12); color: var(--accent); }
+  .nav-item .nav-badge {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    padding: 1px 5px; border-radius: 3px;
+    font-weight: 600;
+  }
+  .badge-static { background: rgba(167,139,250,0.15); color: var(--accent2); }
+  .badge-get    { background: rgba(34,197,94,0.12);   color: var(--tag-get); }
+
+  /* ── Tabs ── */
+  .main { display: flex; flex-direction: column; }
+
+  .tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 0 1.25rem;
+    height: 48px;
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    user-select: none;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .tab-count {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1px 6px;
+    font-size: 0.65rem; font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── Content ── */
+  .content {
+    padding: 2rem;
+    flex: 1;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Overview ── */
+  .overview-hero {
+    background: linear-gradient(135deg, rgba(79,140,255,0.08), rgba(167,139,250,0.05));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    position: relative; overflow: hidden;
+  }
+  .overview-hero::before {
+    content: 'Library';
+    position: absolute; right: -20px; top: -30px;
+    font-size: 10rem; font-weight: 800;
+    color: rgba(79,140,255,0.04);
+    pointer-events: none; user-select: none;
+    line-height: 1;
+  }
+  .overview-hero h1 {
+    font-size: 2rem; font-weight: 800; letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
+  }
+  .overview-hero h1 span { color: var(--accent); }
+  .overview-hero p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; max-width: 600px; }
+
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    display: flex; flex-direction: column; gap: 0.3rem;
+  }
+  .stat-label { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .stat-value { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.purple { color: var(--accent2); }
+  .stat-value.green { color: var(--accent3); }
+  .stat-value.orange { color: var(--accent4); }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .feature-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: 0.75rem;
+  }
+  .feature-card h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .feature-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+
+  /* ── Method Cards ── */
+  .section-header {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .section-header h2 {
+    font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em;
+  }
+  .section-line {
+    flex: 1; height: 1px; background: var(--border);
+  }
+
+  .method-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: border-color 0.2s;
+    scroll-margin-top: 80px;
+  }
+  .method-card:hover { border-color: var(--dim); }
+
+  .method-header {
+    padding: 1rem 1.25rem;
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .method-type-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem; font-weight: 600;
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .badge-pub    { background: rgba(79,140,255,0.12);  color: var(--accent); }
+  .badge-priv   { background: rgba(107,122,158,0.12); color: var(--muted); }
+  .badge-stc    { background: rgba(167,139,250,0.12); color: var(--accent2); }
+
+  .method-name-wrap { flex: 1; }
+  .method-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem; font-weight: 600;
+    color: var(--text);
+  }
+  .method-name span { color: var(--accent); }
+  .method-summary {
+    font-size: 0.78rem; color: var(--muted); margin-top: 3px; line-height: 1.5;
+  }
+
+  .method-chevron {
+    color: var(--muted); flex-shrink: 0;
+    transition: transform 0.2s; margin-top: 4px;
+  }
+  .method-card.open .method-chevron { transform: rotate(180deg); }
+
+  .method-body {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 1.25rem;
+  }
+  .method-card.open .method-body { display: block; }
+
+  /* Signature block */
+  .signature {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+  }
+  .sig-kw   { color: var(--accent2); }
+  .sig-fn   { color: var(--accent); }
+  .sig-par  { color: var(--text); }
+  .sig-type { color: var(--accent3); }
+  .sig-def  { color: var(--muted); }
+  .sig-ret  { color: var(--accent4); }
+  .sig-null { color: var(--accent2); }
+  .sig-str  { color: #f9a8d4; }
+
+  /* Params table */
+  .params-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    margin-bottom: 1.25rem;
+  }
+  .params-table th {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .params-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(31,40,64,0.5);
+    vertical-align: top;
+  }
+  .params-table tr:last-child td { border-bottom: none; }
+  .param-name {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--accent3); font-weight: 500;
+  }
+  .param-type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .type-int    { background: rgba(251,146,60,0.12);  color: var(--tag-int); }
+  .type-str    { background: rgba(52,211,153,0.12);  color: var(--tag-str); }
+  .type-arr    { background: rgba(6,182,212,0.12);   color: var(--tag-arr); }
+  .type-bool   { background: rgba(244,114,182,0.12); color: var(--tag-bool); }
+  .type-void   { background: rgba(148,163,184,0.12); color: var(--tag-void); }
+  .type-mixed  { background: rgba(251,191,36,0.12);  color: var(--tag-mixed); }
+  .type-never  { background: rgba(248,113,113,0.12); color: var(--tag-never); }
+  .type-call   { background: rgba(79,140,255,0.12);  color: var(--accent); }
+  .type-other  { background: rgba(107,122,158,0.12); color: var(--muted); }
+  .param-desc  { color: var(--muted); line-height: 1.5; }
+  .param-default {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem; color: var(--muted);
+    background: var(--surface2); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Returns row */
+  .returns-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    font-size: 0.8rem; color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .returns-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Example block */
+  .example-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .example-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .example-lang {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem; color: var(--muted); letter-spacing: 0.05em;
+  }
+  .copy-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem; color: var(--muted);
+    background: none; border: none; cursor: pointer;
+    padding: 2px 6px; border-radius: 3px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .copy-btn:hover { background: var(--border); color: var(--text); }
+  pre.code {
+    padding: 1rem 1.25rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem; line-height: 1.8;
+    overflow-x: auto; margin: 0;
+  }
+  .c-kw   { color: var(--accent2); }
+  .c-fn   { color: var(--accent); }
+  .c-str  { color: #f9a8d4; }
+  .c-num  { color: var(--accent4); }
+  .c-cmt  { color: var(--muted); font-style: italic; }
+  .c-var  { color: var(--accent3); }
+  .c-cls  { color: #e2e8f8; font-weight: 600; }
+
+  /* ── Throws / Notes ── */
+  .alert {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+  .alert-warn { background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.2); color: #fdba74; }
+  .alert-info { background: rgba(79,140,255,0.08); border: 1px solid rgba(79,140,255,0.2); color: #93c5fd; }
+  .alert-icon { flex-shrink: 0; margin-top: 1px; }
+
+  /* ── No results ── */
+  .no-results {
+    text-align: center; padding: 4rem 2rem; display: none;
+  }
+  .no-results-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .no-results h3 { font-size: 1rem; color: var(--muted); font-weight: 600; }
+
+  /* ── Quick start ── */
+  .qs-step {
+    display: flex; gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-start;
+  }
+  .qs-num {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+    margin-top: 3px;
+  }
+  .qs-content h3 { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .qs-content p  { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.5rem; }
+
+  /* hidden by search */
+  .method-card.hidden, .nav-item.hidden { display: none; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .method-card { animation: fadeUp 0.3s ease both; }
+  .method-card:nth-child(1) { animation-delay: 0.0s; }
+  .method-card:nth-child(2) { animation-delay: 0.04s; }
+  .method-card:nth-child(3) { animation-delay: 0.08s; }
+  .method-card:nth-child(4) { animation-delay: 0.12s; }
+  .method-card:nth-child(5) { animation-delay: 0.16s; }
+  .method-card:nth-child(6) { animation-delay: 0.20s; }
+  .method-card:nth-child(7) { animation-delay: 0.24s; }
+  .method-card:nth-child(8) { animation-delay: 0.28s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">{ }</div>
+    <span class="logo-text">Library.php</span>
+    <span class="logo-version">v2.0</span>
+  </div>
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input type="text" id="search" placeholder="Search methods, params…" autocomplete="off" spellcheck="false">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="nav-section">
+      <div class="nav-section-title">Navigation</div>
+      <button class="nav-item active" data-tab="overview">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" data-tab="quickstart">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Quick Start
+      </button>
+    </div>
+
+    <div class="nav-section" id="nav-database">
+      <div class="nav-section-title">Database</div>
+      <button class="nav-item" data-tab="database" data-scroll="readTable">readTable</button>
+      <button class="nav-item" data-tab="database" data-scroll="readTableWithJoin">readTableWithJoin</button>
+      <button class="nav-item" data-tab="database" data-scroll="partialSearch">partialSearch</button>
+      <button class="nav-item" data-tab="database" data-scroll="countRows">countRows</button>
+      <button class="nav-item" data-tab="database" data-scroll="countPartialSearch">countPartialSearch</button>
+      <button class="nav-item" data-tab="database" data-scroll="writeRecord">writeRecord</button>
+      <button class="nav-item" data-tab="database" data-scroll="updateRecord">updateRecord</button>
+      <button class="nav-item" data-tab="database" data-scroll="deleteRecord">deleteRecord</button>
+      <button class="nav-item" data-tab="database" data-scroll="customSelect">customSelect</button>
+      <button class="nav-item" data-tab="database" data-scroll="customExecute">customExecute</button>
+      <button class="nav-item" data-tab="database" data-scroll="transaction">transaction</button>
+      <button class="nav-item" data-tab="database" data-scroll="closeDBConnection">closeDBConnection</button>
+    </div>
+
+    <div class="nav-section" id="nav-router">
+      <div class="nav-section-title">Router</div>
+      <button class="nav-item" data-tab="router" data-scroll="get">get</button>
+      <button class="nav-item" data-tab="router" data-scroll="post">post</button>
+      <button class="nav-item" data-tab="router" data-scroll="put">put</button>
+      <button class="nav-item" data-tab="router" data-scroll="patch">patch</button>
+      <button class="nav-item" data-tab="router" data-scroll="delete">delete</button>
+      <button class="nav-item" data-tab="router" data-scroll="group">group</button>
+      <button class="nav-item" data-tab="router" data-scroll="middleware">middleware</button>
+      <button class="nav-item" data-tab="router" data-scroll="run">run</button>
+      <button class="nav-item" data-tab="router" data-scroll="useStatic">useStatic</button>
+      <button class="nav-item" data-tab="router" data-scroll="setViewPath">setViewPath</button>
+    </div>
+
+    <div class="nav-section" id="nav-response">
+      <div class="nav-section-title">Response / Views</div>
+      <button class="nav-item" data-tab="response" data-scroll="render">render</button>
+      <button class="nav-item" data-tab="response" data-scroll="sendHTML">sendHTML</button>
+      <button class="nav-item" data-tab="response" data-scroll="sendJSON">sendJSON</button>
+    </div>
+
+    <div class="nav-section" id="nav-utilities">
+      <div class="nav-section-title">Utilities</div>
+      <button class="nav-item" data-tab="utilities" data-scroll="getInstance">getInstance <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="setCsrf">setCsrf <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="hashPassword">hashPassword <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="verifyPassword">verifyPassword <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="shortenText">shortenText <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="redirect">redirect <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="redirectWithMessage">redirectWithMessage <span class="nav-badge badge-static">static</span></button>
+      <button class="nav-item" data-tab="utilities" data-scroll="fetch">fetch <span class="nav-badge badge-static">static</span></button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="quickstart">Quick Start</button>
+      <button class="tab" data-tab="database">Database <span class="tab-count">12</span></button>
+      <button class="tab" data-tab="router">Router <span class="tab-count">10</span></button>
+      <button class="tab" data-tab="response">Response <span class="tab-count">3</span></button>
+      <button class="tab" data-tab="utilities">Utilities <span class="tab-count">8</span></button>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══ OVERVIEW ═══ -->
+      <div class="tab-panel active" id="panel-overview">
+        <div class="overview-hero">
+          <h1>Library<span>.php</span></h1>
+          <p>A lean, single-class PHP micro-framework covering database access, routing, view rendering, and common utilities — with strict types, prepared statements, and CSRF protection throughout.</p>
+        </div>
+
+        <div class="overview-grid">
+          <div class="stat-card"><div class="stat-label">Public Methods</div><div class="stat-value blue">25</div></div>
+          <div class="stat-card"><div class="stat-label">Categories</div><div class="stat-value purple">4</div></div>
+          <div class="stat-card"><div class="stat-label">PHP Minimum</div><div class="stat-value green">8.1</div></div>
+          <div class="stat-card"><div class="stat-label">Dependencies</div><div class="stat-value orange">0</div></div>
+        </div>
+
+        <div class="section-header"><h2>Features</h2><div class="section-line"></div></div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(79,140,255,0.12)">🗄️</div>
+            <h3>Database Layer</h3>
+            <p>Full CRUD with prepared statements, JOINs, pagination, partial search, transactions, and safe identifier quoting.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(167,139,250,0.12)">🔀</div>
+            <h3>HTTP Router</h3>
+            <p>Named route params, route groups, global & per-route middleware, static file serving, and HTMX support.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(52,211,153,0.12)">🔒</div>
+            <h3>Security Built-in</h3>
+            <p>CSRF protection on all mutating methods, bcrypt password hashing, path-traversal-safe static serving, SSL-enforced cURL.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(251,146,60,0.12)">⚡</div>
+            <h3>Zero Dependencies</h3>
+            <p>No Composer packages. Pure PHP 8.1+ with strict types, using only built-in extensions (mysqli, curl, fileinfo).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ QUICK START ═══ -->
+      <div class="tab-panel" id="panel-quickstart">
+        <div class="section-header"><h2>Quick Start</h2><div class="section-line"></div></div>
+
+        <div class="qs-step">
+          <div class="qs-num">1</div>
+          <div class="qs-content">
+            <h3>Get an instance</h3>
+            <p>The class uses a singleton — call <code style="font-family:'IBM Plex Mono',monospace;color:var(--accent3)">getInstance()</code> everywhere; it will reuse the same connection.</p>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span> = <span class="c-cls">Library</span>::<span class="c-fn">getInstance</span>(<span class="c-str">'localhost'</span>, <span class="c-str">'root'</span>, <span class="c-str">'secret'</span>, <span class="c-str">'mydb'</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="qs-step">
+          <div class="qs-num">2</div>
+          <div class="qs-content">
+            <h3>Read data</h3>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cmt">// All users</span>
+<span class="c-var">$users</span> = <span class="c-var">$db</span>-><span class="c-fn">readTable</span>(<span class="c-str">'users'</span>);
+
+<span class="c-cmt">// Paginated, filtered</span>
+<span class="c-var">$admins</span> = <span class="c-var">$db</span>-><span class="c-fn">readTable</span>(
+    table: <span class="c-str">'users'</span>,
+    columns: <span class="c-str">'id, name, email'</span>,
+    limit: <span class="c-num">10</span>,
+    page: <span class="c-num">2</span>,
+    where: <span class="c-str">'role = ?'</span>,
+    whereParams: [<span class="c-str">'admin'</span>]
+);</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="qs-step">
+          <div class="qs-num">3</div>
+          <div class="qs-content">
+            <h3>Register routes</h3>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">setViewPath</span>(<span class="c-kw">__DIR__</span> . <span class="c-str">'/views'</span>);
+
+<span class="c-var">$db</span>-><span class="c-fn">get</span>(<span class="c-str">'/'</span>, <span class="c-kw">fn</span>() => <span class="c-var">$db</span>-><span class="c-fn">render</span>(<span class="c-str">'home.php'</span>));
+
+<span class="c-var">$db</span>-><span class="c-fn">get</span>(<span class="c-str">'/users/{id}'</span>, <span class="c-kw">function</span>(<span class="c-var">$id</span>) <span class="c-kw">use</span> (<span class="c-var">$db</span>) {
+    <span class="c-var">$user</span> = <span class="c-var">$db</span>-><span class="c-fn">readTable</span>(<span class="c-str">'users'</span>, where: <span class="c-str">'id = ?'</span>, whereParams: [<span class="c-var">$id</span>]);
+    <span class="c-var">$db</span>-><span class="c-fn">sendJSON</span>(<span class="c-var">$user</span>[<span class="c-num">0</span>] ?? <span class="c-kw">null</span>);
+});
+
+<span class="c-var">$db</span>-><span class="c-fn">run</span>();</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="qs-step">
+          <div class="qs-num">4</div>
+          <div class="qs-content">
+            <h3>Write &amp; protect</h3>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cmt">// In your form view:</span>
+<span class="c-cls">Library</span>::<span class="c-fn">setCsrf</span>(); <span class="c-cmt">// emits hidden input</span>
+
+<span class="c-cmt">// POST route (CSRF auto-checked by run()):</span>
+<span class="c-var">$db</span>-><span class="c-fn">post</span>(<span class="c-str">'/users'</span>, <span class="c-kw">function</span>() <span class="c-kw">use</span> (<span class="c-var">$db</span>) {
+    <span class="c-var">$id</span> = <span class="c-var">$db</span>-><span class="c-fn">writeRecord</span>(<span class="c-str">'users'</span>, [
+        <span class="c-str">'name'</span>  => <span class="c-var">$_POST</span>[<span class="c-str">'name'</span>],
+        <span class="c-str">'email'</span> => <span class="c-var">$_POST</span>[<span class="c-str">'email'</span>],
+        <span class="c-str">'password'</span> => <span class="c-cls">Library</span>::<span class="c-fn">hashPassword</span>(<span class="c-var">$_POST</span>[<span class="c-str">'password'</span>]),
+    ]);
+    <span class="c-cls">Library</span>::<span class="c-fn">redirectWithMessage</span>(<span class="c-str">'/users'</span>, <span class="c-str">'User created!'</span>);
+});</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ DATABASE ═══ -->
+      <div class="tab-panel" id="panel-database">
+        <div class="section-header"><h2>Database Methods</h2><div class="section-line"></div></div>
+        <div id="no-results-database" class="no-results"><div class="no-results-icon">🔍</div><h3>No methods match your search</h3></div>
+
+        <!-- readTable -->
+        <div class="method-card" id="readTable" data-keywords="readtable select read fetch rows columns limit page order where paginate">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>readTable</span>(…): array</div>
+              <div class="method-summary">Read rows from a table with optional filtering, ordering, and pagination.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">readTable</span>(
+  <span class="sig-type">string</span>  <span class="sig-par">$table</span>,
+  <span class="sig-type">string</span>  <span class="sig-par">$columns</span>     <span class="sig-def">= '*'</span>,
+  <span class="sig-null">?</span><span class="sig-type">int</span>    <span class="sig-par">$limit</span>       <span class="sig-def">= null</span>,
+  <span class="sig-type">int</span>     <span class="sig-par">$page</span>        <span class="sig-def">= 1</span>,
+  <span class="sig-null">?</span><span class="sig-type">string</span> <span class="sig-par">$order</span>       <span class="sig-def">= null</span>,
+  <span class="sig-null">?</span><span class="sig-type">string</span> <span class="sig-par">$where</span>       <span class="sig-def">= null</span>,
+  <span class="sig-type">array</span>   <span class="sig-par">$whereParams</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">array</span>
+            </div>
+            <table class="params-table">
+              <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+              <tr><td class="param-name">$table</td><td><span class="param-type type-str">string</span></td><td>—</td><td class="param-desc">Table name (auto-quoted).</td></tr>
+              <tr><td class="param-name">$columns</td><td><span class="param-type type-str">string</span></td><td class="param-default">'*'</td><td class="param-desc">Column list — supports <code>*</code>, <code>table.*</code>, functions, <code>col AS alias</code>.</td></tr>
+              <tr><td class="param-name">$limit</td><td><span class="param-type type-int">?int</span></td><td class="param-default">null</td><td class="param-desc">Max rows to return.</td></tr>
+              <tr><td class="param-name">$page</td><td><span class="param-type type-int">int</span></td><td class="param-default">1</td><td class="param-desc">Page number (used with $limit for OFFSET).</td></tr>
+              <tr><td class="param-name">$order</td><td><span class="param-type type-str">?string</span></td><td class="param-default">null</td><td class="param-desc">ORDER BY clause, e.g. <code>'created_at DESC'</code>.</td></tr>
+              <tr><td class="param-name">$where</td><td><span class="param-type type-str">?string</span></td><td class="param-default">null</td><td class="param-desc">WHERE clause using <code>?</code> placeholders.</td></tr>
+              <tr><td class="param-name">$whereParams</td><td><span class="param-type type-arr">array</span></td><td class="param-default">[]</td><td class="param-desc">Bound values for the WHERE placeholders.</td></tr>
+            </table>
+            <div class="returns-row"><span class="returns-label">Returns</span><span class="param-type type-arr">array</span><span style="color:var(--muted)">Associative array of rows.</span></div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cmt">// Page 2 of active users, 20 per page</span>
+<span class="c-var">$users</span> = <span class="c-var">$db</span>-><span class="c-fn">readTable</span>(
+    table: <span class="c-str">'users'</span>,
+    columns: <span class="c-str">'id, name, email'</span>,
+    limit: <span class="c-num">20</span>,
+    page: <span class="c-num">2</span>,
+    order: <span class="c-str">'name ASC'</span>,
+    where: <span class="c-str">'active = ?'</span>,
+    whereParams: [<span class="c-num">1</span>]
+);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- readTableWithJoin -->
+        <div class="method-card" id="readTableWithJoin" data-keywords="join inner left right outer select read join table">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>readTableWithJoin</span>(…): array</div>
+              <div class="method-summary">Read rows with one or more SQL JOINs.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">readTableWithJoin</span>(
+  <span class="sig-type">string</span>  <span class="sig-par">$table</span>,
+  <span class="sig-type">array</span>   <span class="sig-par">$joins</span>,
+  <span class="sig-type">string</span>  <span class="sig-par">$columns</span>     <span class="sig-def">= '*'</span>,
+  <span class="sig-null">?</span><span class="sig-type">int</span>    <span class="sig-par">$limit</span>       <span class="sig-def">= null</span>,
+  <span class="sig-type">int</span>     <span class="sig-par">$page</span>        <span class="sig-def">= 1</span>,
+  <span class="sig-null">?</span><span class="sig-type">string</span> <span class="sig-par">$order</span>       <span class="sig-def">= null</span>,
+  <span class="sig-null">?</span><span class="sig-type">string</span> <span class="sig-par">$where</span>       <span class="sig-def">= null</span>,
+  <span class="sig-type">array</span>   <span class="sig-par">$whereParams</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">array</span>
+            </div>
+            <table class="params-table">
+              <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+              <tr><td class="param-name">$table</td><td><span class="param-type type-str">string</span></td><td>—</td><td class="param-desc">Base (FROM) table name.</td></tr>
+              <tr><td class="param-name">$joins</td><td><span class="param-type type-arr">array</span></td><td>—</td><td class="param-desc">Array of join specs. Each: <code>['type'=>'LEFT','table'=>'orders','on'=>'users.id=orders.user_id']</code>. Type defaults to INNER.</td></tr>
+              <tr><td class="param-name">$columns</td><td><span class="param-type type-str">string</span></td><td class="param-default">'*'</td><td class="param-desc">Column list.</td></tr>
+              <tr><td class="param-name">$limit / $page / $order / $where / $whereParams</td><td>—</td><td>—</td><td class="param-desc">Same as readTable.</td></tr>
+            </table>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$rows</span> = <span class="c-var">$db</span>-><span class="c-fn">readTableWithJoin</span>(
+    table: <span class="c-str">'orders'</span>,
+    joins: [
+        [<span class="c-str">'type'</span> => <span class="c-str">'LEFT'</span>, <span class="c-str">'table'</span> => <span class="c-str">'users'</span>,    <span class="c-str">'on'</span> => <span class="c-str">'orders.user_id = users.id'</span>],
+        [<span class="c-str">'type'</span> => <span class="c-str">'INNER'</span>,<span class="c-str">'table'</span> => <span class="c-str">'products'</span>, <span class="c-str">'on'</span> => <span class="c-str">'orders.product_id = products.id'</span>],
+    ],
+    columns: <span class="c-str">'orders.id, users.name, products.title'</span>,
+    where: <span class="c-str">'orders.status = ?'</span>,
+    whereParams: [<span class="c-str">'shipped'</span>]
+);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- partialSearch -->
+        <div class="method-card" id="partialSearch" data-keywords="search like partial wildcard find lookup">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>partialSearch</span>(…): array</div>
+              <div class="method-summary">LIKE search on a single column — returns matching rows.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">partialSearch</span>(
+  <span class="sig-type">string</span>  <span class="sig-par">$table</span>,
+  <span class="sig-type">string</span>  <span class="sig-par">$columnName</span>,
+  <span class="sig-type">string</span>  <span class="sig-par">$search</span>,
+  <span class="sig-type">string</span>  <span class="sig-par">$columns</span> <span class="sig-def">= '*'</span>,
+  <span class="sig-null">?</span><span class="sig-type">int</span>    <span class="sig-par">$limit</span>   <span class="sig-def">= null</span>,
+  <span class="sig-null">?</span><span class="sig-type">string</span> <span class="sig-par">$order</span>   <span class="sig-def">= null</span>
+): <span class="sig-ret">array</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$results</span> = <span class="c-var">$db</span>-><span class="c-fn">partialSearch</span>(<span class="c-str">'products'</span>, <span class="c-str">'name'</span>, <span class="c-str">'shirt'</span>, limit: <span class="c-num">20</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- countRows -->
+        <div class="method-card" id="countRows" data-keywords="count rows total number aggregate">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>countRows</span>(…): int</div>
+              <div class="method-summary">Count rows in a table, with an optional WHERE clause.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">countRows</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$table</span>,
+  <span class="sig-null">?</span><span class="sig-type">string</span> <span class="sig-par">$where</span>       <span class="sig-def">= null</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$whereParams</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">int</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$total</span>  = <span class="c-var">$db</span>-><span class="c-fn">countRows</span>(<span class="c-str">'users'</span>);
+<span class="c-var">$active</span> = <span class="c-var">$db</span>-><span class="c-fn">countRows</span>(<span class="c-str">'users'</span>, <span class="c-str">'active = ?'</span>, [<span class="c-num">1</span>]);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- countPartialSearch -->
+        <div class="method-card" id="countPartialSearch" data-keywords="count search like total pagination">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>countPartialSearch</span>(…): int</div>
+              <div class="method-summary">Count rows matching a LIKE search — useful for pagination totals.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">countPartialSearch</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$table</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$columnName</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$search</span>
+): <span class="sig-ret">int</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$total</span> = <span class="c-var">$db</span>-><span class="c-fn">countPartialSearch</span>(<span class="c-str">'products'</span>, <span class="c-str">'name'</span>, <span class="c-str">'shirt'</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- writeRecord -->
+        <div class="method-card" id="writeRecord" data-keywords="insert write create record row add">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>writeRecord</span>(…): int</div>
+              <div class="method-summary">Insert a row and return the new auto-increment ID.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">writeRecord</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$table</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$values</span>
+): <span class="sig-ret">int</span>
+            </div>
+            <div class="alert alert-warn">
+              <span class="alert-icon">⚠</span>
+              Throws <code>InvalidArgumentException</code> if <code>$values</code> is empty.
+            </div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$newId</span> = <span class="c-var">$db</span>-><span class="c-fn">writeRecord</span>(<span class="c-str">'users'</span>, [
+    <span class="c-str">'name'</span>  => <span class="c-str">'Alice'</span>,
+    <span class="c-str">'email'</span> => <span class="c-str">'alice@example.com'</span>,
+    <span class="c-str">'role'</span>  => <span class="c-str">'admin'</span>,
+]);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- updateRecord -->
+        <div class="method-card" id="updateRecord" data-keywords="update edit modify record row change">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>updateRecord</span>(…): int</div>
+              <div class="method-summary">Update matching rows. Returns number of affected rows.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">updateRecord</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$table</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$values</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$where</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$whereParams</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">int</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$affected</span> = <span class="c-var">$db</span>-><span class="c-fn">updateRecord</span>(
+    <span class="c-str">'users'</span>,
+    [<span class="c-str">'name'</span> => <span class="c-str">'Bob'</span>, <span class="c-str">'active'</span> => <span class="c-num">0</span>],
+    <span class="c-str">'id = ?'</span>,
+    [<span class="c-num">42</span>]
+);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- deleteRecord -->
+        <div class="method-card" id="deleteRecord" data-keywords="delete remove record row destroy">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>deleteRecord</span>(…): int</div>
+              <div class="method-summary">Delete matching rows. Requires a non-empty WHERE clause.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">deleteRecord</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$table</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$where</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$whereParams</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">int</span>
+            </div>
+            <div class="alert alert-warn">
+              <span class="alert-icon">⚠</span>
+              An empty <code>$where</code> throws <code>InvalidArgumentException</code>. Pass <code>'1'</code> explicitly to delete all rows.
+            </div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">deleteRecord</span>(<span class="c-str">'sessions'</span>, <span class="c-str">'user_id = ?'</span>, [<span class="c-num">7</span>]);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- customSelect -->
+        <div class="method-card" id="customSelect" data-keywords="custom query raw select show describe sql">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>customSelect</span>(…): array</div>
+              <div class="method-summary">Run a raw SELECT / SHOW / DESCRIBE and return rows.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">customSelect</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$query</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$params</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">array</span>
+            </div>
+            <div class="alert alert-warn"><span class="alert-icon">⚠</span>Throws <code>InvalidArgumentException</code> if the query is not SELECT/SHOW/DESCRIBE.</div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$rows</span> = <span class="c-var">$db</span>-><span class="c-fn">customSelect</span>(
+    <span class="c-str">'SELECT u.*, COUNT(o.id) AS orders FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id HAVING orders > ?'</span>,
+    [<span class="c-num">5</span>]
+);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- customExecute -->
+        <div class="method-card" id="customExecute" data-keywords="custom execute raw insert update delete sql query">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>customExecute</span>(…): int</div>
+              <div class="method-summary">Run a raw non-SELECT query and return affected row count.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">customExecute</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$query</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$params</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">int</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">customExecute</span>(<span class="c-str">'TRUNCATE TABLE logs'</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- transaction -->
+        <div class="method-card" id="transaction" data-keywords="transaction atomic rollback commit begin">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>transaction</span>(callable $work): mixed</div>
+              <div class="method-summary">Wrap work in a DB transaction — auto-rollback on any exception.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">transaction</span>(<span class="sig-type">callable</span> <span class="sig-par">$work</span>): <span class="sig-ret">mixed</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">transaction</span>(<span class="c-kw">function</span>(<span class="c-var">$db</span>) {
+    <span class="c-var">$db</span>-><span class="c-fn">writeRecord</span>(<span class="c-str">'orders'</span>, [<span class="c-str">'user_id'</span> => <span class="c-num">1</span>, <span class="c-str">'total'</span> => <span class="c-num">99.99</span>]);
+    <span class="c-var">$db</span>-><span class="c-fn">updateRecord</span>(<span class="c-str">'inventory'</span>, [<span class="c-str">'stock'</span> => <span class="c-num">49</span>], <span class="c-str">'product_id = ?'</span>, [<span class="c-num">5</span>]);
+});</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- closeDBConnection -->
+        <div class="method-card" id="closeDBConnection" data-keywords="close connection disconnect db database">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>closeDBConnection</span>(): void</div>
+              <div class="method-summary">Explicitly close the mysqli connection.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="alert alert-info"><span class="alert-icon">ℹ</span>Usually not needed — PHP closes connections at script end. Useful in long-running CLI scripts.</div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">closeDBConnection</span>();</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ROUTER ═══ -->
+      <div class="tab-panel" id="panel-router">
+        <div class="section-header"><h2>Router Methods</h2><div class="section-line"></div></div>
+        <div id="no-results-router" class="no-results"><div class="no-results-icon">🔍</div><h3>No methods match your search</h3></div>
+
+        <!-- get / post / put / patch / delete -->
+        <div class="method-card" id="get" data-keywords="get route http method register handler">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>get / post / put / patch / delete</span>(…): void</div>
+              <div class="method-summary">Register a route for the corresponding HTTP method.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">get|post|put|patch|delete</span>(
+  <span class="sig-type">string</span>          <span class="sig-par">$route</span>,
+  <span class="sig-type">callable|string</span> <span class="sig-par">$callback</span>,
+  <span class="sig-type">array</span>           <span class="sig-par">$middleware</span> <span class="sig-def">= []</span>
+): <span class="sig-ret">void</span>
+            </div>
+            <table class="params-table">
+              <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+              <tr><td class="param-name">$route</td><td><span class="param-type type-str">string</span></td><td class="param-desc">URI pattern. Use <code>{param}</code> for named segments.</td></tr>
+              <tr><td class="param-name">$callback</td><td><span class="param-type type-call">callable|string</span></td><td class="param-desc">Handler callable or a string redirect path.</td></tr>
+              <tr><td class="param-name">$middleware</td><td><span class="param-type type-arr">array</span></td><td class="param-desc">Per-route middleware callables.</td></tr>
+            </table>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">get</span>(<span class="c-str">'/products/{id}'</span>, <span class="c-kw">function</span>(<span class="c-var">$id</span>) <span class="c-kw">use</span> (<span class="c-var">$db</span>) {
+    <span class="c-var">$product</span> = <span class="c-var">$db</span>-><span class="c-fn">readTable</span>(<span class="c-str">'products'</span>, where: <span class="c-str">'id = ?'</span>, whereParams: [<span class="c-var">$id</span>]);
+    <span class="c-var">$db</span>-><span class="c-fn">sendJSON</span>(<span class="c-var">$product</span>);
+});
+
+<span class="c-var">$db</span>-><span class="c-fn">post</span>(<span class="c-str">'/products'</span>, <span class="c-var">$handler</span>, middleware: [<span class="c-var">$authMiddleware</span>]);
+<span class="c-var">$db</span>-><span class="c-fn">delete</span>(<span class="c-str">'/products/{id}'</span>, <span class="c-var">$deleteHandler</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden individual anchors for sidebar scroll -->
+        <div id="post" style="display:none"></div>
+        <div id="put" style="display:none"></div>
+        <div id="patch" style="display:none"></div>
+        <div id="delete" style="display:none"></div>
+
+        <!-- group -->
+        <div class="method-card" id="group" data-keywords="group prefix route namespace">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>group</span>(string $prefix, callable $callback): void</div>
+              <div class="method-summary">Register a group of routes under a shared URI prefix.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">group</span>(<span class="c-str">'/api/v1'</span>, <span class="c-kw">function</span>() <span class="c-kw">use</span> (<span class="c-var">$db</span>) {
+    <span class="c-var">$db</span>-><span class="c-fn">get</span>(<span class="c-str">'/users'</span>, <span class="c-var">$listUsers</span>);     <span class="c-cmt">// → /api/v1/users</span>
+    <span class="c-var">$db</span>-><span class="c-fn">post</span>(<span class="c-str">'/users'</span>, <span class="c-var">$createUser</span>);   <span class="c-cmt">// → /api/v1/users</span>
+    <span class="c-var">$db</span>-><span class="c-fn">get</span>(<span class="c-str">'/users/{id}'</span>, <span class="c-var">$getUser</span>);  <span class="c-cmt">// → /api/v1/users/{id}</span>
+});</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- middleware -->
+        <div class="method-card" id="middleware" data-keywords="middleware global route auth guard">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>middleware</span>(callable $middleware, array $routes = []): void</div>
+              <div class="method-summary">Register a global or route-specific middleware callable.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="alert alert-info"><span class="alert-icon">ℹ</span>When <code>$routes</code> is empty, the middleware runs on every request. The callable receives <code>($params, $next)</code> — call <code>$next()</code> to continue the chain.</div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cmt">// Global auth guard</span>
+<span class="c-var">$db</span>-><span class="c-fn">middleware</span>(<span class="c-kw">function</span>(<span class="c-var">$params</span>, <span class="c-var">$next</span>) {
+    <span class="c-kw">if</span> (!isset(<span class="c-var">$_SESSION</span>[<span class="c-str">'user'</span>])) {
+        <span class="c-cls">Library</span>::<span class="c-fn">redirect</span>(<span class="c-str">'/login'</span>);
+    }
+    <span class="c-var">$next</span>();
+});</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- run -->
+        <div class="method-card" id="run" data-keywords="run dispatch request start execute">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>run</span>(): void</div>
+              <div class="method-summary">Dispatch the current HTTP request — call this once at the end of your router file.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="alert alert-info"><span class="alert-icon">ℹ</span>Automatically validates CSRF tokens for POST, PUT, PATCH, and DELETE requests. Returns <code>405</code> with an <code>Allow</code> header for unknown HTTP methods. Renders <code>partials/404.php</code> on no match.</div>
+          </div>
+        </div>
+
+        <!-- useStatic -->
+        <div class="method-card" id="useStatic" data-keywords="static files assets css js images serve public">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>useStatic</span>(string $path): void</div>
+              <div class="method-summary">Serve static files from a directory. Path-traversal safe.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">useStatic</span>(<span class="c-kw">__DIR__</span> . <span class="c-str">'/public'</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- setViewPath -->
+        <div class="method-card" id="setViewPath" data-keywords="view path directory template render configure">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>setViewPath</span>(string $path): void</div>
+              <div class="method-summary">Configure the base directory for view files. Avoids directory traversal on every render.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">setViewPath</span>(<span class="c-kw">__DIR__</span> . <span class="c-str">'/views'</span>);</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ RESPONSE ═══ -->
+      <div class="tab-panel" id="panel-response">
+        <div class="section-header"><h2>Response / View Methods</h2><div class="section-line"></div></div>
+        <div id="no-results-response" class="no-results"><div class="no-results-icon">🔍</div><h3>No methods match your search</h3></div>
+
+        <!-- render -->
+        <div class="method-card" id="render" data-keywords="render view template output echo html">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>render</span>(string $view, array $data = []): void</div>
+              <div class="method-summary">Include and output a view file, with optional data extracted as variables.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">render</span>(<span class="c-str">'home.php'</span>, [<span class="c-str">'title'</span> => <span class="c-str">'Home'</span>, <span class="c-str">'user'</span> => <span class="c-var">$user</span>]);
+<span class="c-cmt">// Inside home.php: $title and $user are available as variables</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- sendHTML -->
+        <div class="method-card" id="sendHTML" data-keywords="htmx partial html send view layout">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>sendHTML</span>(…): void</div>
+              <div class="method-summary">HTMX-aware response — sends the partial view for HTMX requests, full layout otherwise.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public function</span> <span class="sig-fn">sendHTML</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$view</span>,
+  <span class="sig-type">array</span>  <span class="sig-par">$data</span>     <span class="sig-def">= []</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$mainView</span> <span class="sig-def">= 'index.php'</span>
+): <span class="sig-ret">void</span>
+            </div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cmt">// HTMX → renders partials/products.php
+// Browser → renders index.php (with $data available)</span>
+<span class="c-var">$db</span>-><span class="c-fn">sendHTML</span>(<span class="c-str">'partials/products.php'</span>, [<span class="c-str">'products'</span> => <span class="c-var">$products</span>]);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- sendJSON -->
+        <div class="method-card" id="sendJSON" data-keywords="json api response send data status code">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-pub">public</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>sendJSON</span>(mixed $data, int $statusCode = 200): void</div>
+              <div class="method-summary">JSON-encode and send a response with correct Content-Type header.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span>-><span class="c-fn">sendJSON</span>([<span class="c-str">'status'</span> => <span class="c-str">'ok'</span>, <span class="c-str">'id'</span> => <span class="c-num">42</span>]);
+<span class="c-var">$db</span>-><span class="c-fn">sendJSON</span>([<span class="c-str">'error'</span> => <span class="c-str">'Not found'</span>], <span class="c-num">404</span>);</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ UTILITIES ═══ -->
+      <div class="tab-panel" id="panel-utilities">
+        <div class="section-header"><h2>Utility Methods</h2><div class="section-line"></div></div>
+        <div id="no-results-utilities" class="no-results"><div class="no-results-icon">🔍</div><h3>No methods match your search</h3></div>
+
+        <!-- getInstance -->
+        <div class="method-card" id="getInstance" data-keywords="instance singleton create init constructor database connect">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>getInstance</span>(…): self</div>
+              <div class="method-summary">Get or create the singleton Library instance with a persistent DB connection.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="signature">
+<span class="sig-kw">public static function</span> <span class="sig-fn">getInstance</span>(
+  <span class="sig-type">string</span> <span class="sig-par">$host</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$username</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$password</span>,
+  <span class="sig-type">string</span> <span class="sig-par">$database</span>
+): <span class="sig-ret">self</span>
+            </div>
+            <div class="alert alert-info"><span class="alert-icon">ℹ</span>Subsequent calls return the same instance regardless of the arguments passed. The connection uses <code>p:</code> (persistent) prefix for connection pooling.</div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$db</span> = <span class="c-cls">Library</span>::<span class="c-fn">getInstance</span>(<span class="c-str">'localhost'</span>, <span class="c-str">'root'</span>, <span class="c-str">'pass'</span>, <span class="c-str">'mydb'</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- setCsrf -->
+        <div class="method-card" id="setCsrf" data-keywords="csrf token security form protection xss hidden input">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>setCsrf</span>(): void</div>
+              <div class="method-summary">Echo a CSRF hidden input and generate a session token if one doesn't exist.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="alert alert-info"><span class="alert-icon">ℹ</span>The token is automatically validated by <code>run()</code> on POST/PUT/PATCH/DELETE. Token is 32 random bytes (256 bits).</div>
+            <div class="example-block" style="margin-top:1rem">
+              <div class="example-header"><span class="example-lang">PHP (in view)</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-str">&lt;form method="post"&gt;</span>
+    <span class="c-cls">&lt;?php</span> <span class="c-cls">Library</span>::<span class="c-fn">setCsrf</span>(); <span class="c-cls">?&gt;</span>
+    <span class="c-str">&lt;input type="text" name="name"&gt;</span>
+    <span class="c-str">&lt;button&gt;</span>Submit<span class="c-str">&lt;/button&gt;</span>
+<span class="c-str">&lt;/form&gt;</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- hashPassword -->
+        <div class="method-card" id="hashPassword" data-keywords="hash password bcrypt security encrypt">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>hashPassword</span>(string $password): string</div>
+              <div class="method-summary">Hash a password with bcrypt (cost 12).</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$hash</span> = <span class="c-cls">Library</span>::<span class="c-fn">hashPassword</span>(<span class="c-var">$_POST</span>[<span class="c-str">'password'</span>]);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- verifyPassword -->
+        <div class="method-card" id="verifyPassword" data-keywords="verify password check bcrypt authenticate login">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>verifyPassword</span>(string $password, string $hash): bool</div>
+              <div class="method-summary">Verify a plain password against a bcrypt hash.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-kw">if</span> (<span class="c-cls">Library</span>::<span class="c-fn">verifyPassword</span>(<span class="c-var">$_POST</span>[<span class="c-str">'password'</span>], <span class="c-var">$user</span>[<span class="c-str">'password'</span>])) {
+    <span class="c-cmt">// login success</span>
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- shortenText -->
+        <div class="method-card" id="shortenText" data-keywords="shorten truncate text ellipsis trim string">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>shortenText</span>(string $text, int $maxLength): string</div>
+              <div class="method-summary">Truncate text to maxLength characters (multibyte-safe), appending '…'.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-kw">echo</span> <span class="c-cls">Library</span>::<span class="c-fn">shortenText</span>(<span class="c-str">'This is a very long product description'</span>, <span class="c-num">20</span>);
+<span class="c-cmt">// → "This is a very long…"</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- redirect -->
+        <div class="method-card" id="redirect" data-keywords="redirect location header url navigate">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>redirect</span>(string $path): never</div>
+              <div class="method-summary">Send a Location header and terminate script execution.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cls">Library</span>::<span class="c-fn">redirect</span>(<span class="c-str">'/dashboard'</span>);</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- redirectWithMessage -->
+        <div class="method-card" id="redirectWithMessage" data-keywords="redirect message flash session notify">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>redirectWithMessage</span>(string $url, string $msg): never</div>
+              <div class="method-summary">Store a flash message in <code>$_SESSION['msg']</code> then redirect.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-cls">Library</span>::<span class="c-fn">redirectWithMessage</span>(<span class="c-str">'/products'</span>, <span class="c-str">'Product deleted successfully.'</span>);
+<span class="c-cmt">// In target view: echo $_SESSION['msg'] ?? '';</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- fetch -->
+        <div class="method-card" id="fetch" data-keywords="fetch http curl request get api external url">
+          <div class="method-header" onclick="toggle(this)">
+            <span class="method-type-badge badge-stc">static</span>
+            <div class="method-name-wrap">
+              <div class="method-name"><span>fetch</span>(string $url, array $headers = []): array</div>
+              <div class="method-summary">Make an HTTP GET request via cURL with SSL verification enabled.</div>
+            </div>
+            <svg class="method-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="method-body">
+            <div class="returns-row"><span class="returns-label">Returns</span><span style="color:var(--muted)"><code>['data' => string, 'status_code' => int]</code> on success or <code>['error' => string, 'status_code' => int]</code> on failure.</span></div>
+            <div class="example-block">
+              <div class="example-header"><span class="example-lang">PHP</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+              <pre class="code"><span class="c-var">$res</span> = <span class="c-cls">Library</span>::<span class="c-fn">fetch</span>(<span class="c-str">'https://api.example.com/data'</span>, [
+    <span class="c-str">'Authorization: Bearer '</span> . <span class="c-var">$token</span>,
+    <span class="c-str">'Accept: application/json'</span>,
+]);
+
+<span class="c-kw">if</span> (isset(<span class="c-var">$res</span>[<span class="c-str">'data'</span>])) {
+    <span class="c-var">$payload</span> = <span class="c-fn">json_decode</span>(<span class="c-var">$res</span>[<span class="c-str">'data'</span>], <span class="c-kw">true</span>);
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+  // ── Tab switching ──
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab, .tab-panel').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+    document.querySelector(`.tab[data-tab="${tabName}"]`)?.classList.add('active');
+    document.querySelector(`#panel-${tabName}`)?.classList.add('active');
+    document.querySelectorAll(`.nav-item[data-tab="${tabName}"]`).forEach(el => {
+      if (!el.dataset.scroll) el.classList.add('active');
+    });
+
+    if (!['overview', 'quickstart'].includes(tabName)) {
+      applySearch(document.getElementById('search').value);
+    }
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const tab = item.dataset.tab;
+      const scrollTo = item.dataset.scroll;
+
+      if (!tab) { switchTab('overview'); return; }
+      switchTab(tab);
+
+      if (scrollTo) {
+        setTimeout(() => {
+          const el = document.getElementById(scrollTo);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // auto-open the card
+            if (el.classList.contains('method-card') && !el.classList.contains('open')) {
+              el.classList.add('open');
+            }
+          }
+        }, 50);
+      }
+
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // ── Accordion toggle ──
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  // ── Copy code ──
+  function copyCode(btn) {
+    const pre = btn.closest('.example-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'copied!';
+      setTimeout(() => btn.textContent = 'copy', 1500);
+    });
+  }
+
+  // ── Search ──
+  const searchEl = document.getElementById('search');
+  const countEl  = document.getElementById('searchCount');
+
+  function applySearch(query) {
+    const q = query.trim().toLowerCase();
+    const activePanel = document.querySelector('.tab-panel.active');
+    if (!activePanel || activePanel.id === 'panel-overview' || activePanel.id === 'panel-quickstart') return;
+
+    const panelId = activePanel.id.replace('panel-', '');
+    const cards = activePanel.querySelectorAll('.method-card');
+    const noResults = document.getElementById(`no-results-${panelId}`);
+    let visible = 0;
+
+    cards.forEach(card => {
+      const text = (card.querySelector('.method-name')?.textContent + ' ' +
+                    card.querySelector('.method-summary')?.textContent + ' ' +
+                    (card.dataset.keywords || '')).toLowerCase();
+      const match = !q || text.includes(q);
+      card.classList.toggle('hidden', !match);
+      if (match) visible++;
+    });
+
+    if (noResults) noResults.style.display = (visible === 0 && q) ? 'block' : 'none';
+
+    // Nav items
+    document.querySelectorAll(`.nav-item[data-tab="${panelId}"]`).forEach(item => {
+      const name = item.textContent.trim().toLowerCase();
+      item.classList.toggle('hidden', !!(q && !name.includes(q)));
+    });
+
+    countEl.style.display = q ? 'block' : 'none';
+    countEl.textContent = q ? `${visible}` : '';
+  }
+
+  searchEl.addEventListener('input', e => {
+    const q = e.target.value.trim().toLowerCase();
+
+    // If searching, switch to the first non-overview tab that has matches
+    if (q) {
+      const panels = ['database', 'router', 'response', 'utilities'];
+      let switched = false;
+      for (const p of panels) {
+        const panel = document.getElementById(`panel-${p}`);
+        const hasMatch = [...panel.querySelectorAll('.method-card')].some(card => {
+          const text = (card.querySelector('.method-name')?.textContent + ' ' +
+                        card.querySelector('.method-summary')?.textContent + ' ' +
+                        (card.dataset.keywords || '')).toLowerCase();
+          return text.includes(q);
+        });
+        if (hasMatch) { switchTab(p); switched = true; break; }
+      }
+    }
+
+    applySearch(e.target.value);
+  });
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      searchEl.focus();
+      searchEl.select();
+    }
+  });
+</script>
+</body>
+</html>
